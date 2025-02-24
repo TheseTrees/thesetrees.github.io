@@ -133,20 +133,66 @@ function drawLasers() {
     }
 }
 
-// Update game loop to move the ship
+// Array to track asteroids
+const asteroids = [];
+const numAsteroids = 5;
+
+// Generate random asteroids
+function createAsteroids() {
+    for (let i = 0; i < numAsteroids; i++) {
+        let asteroid = {
+            x: Math.random() * canvas.width,
+            y: Math.random() * canvas.height,
+            velocityX: (Math.random() - 0.5) * 2, // Random speed between -1 and 1
+            velocityY: (Math.random() - 0.5) * 2,
+            size: Math.random() * 30 + 15 // Random size between 15 and 45
+        };
+        asteroids.push(asteroid);
+    }
+}
+
+// Update asteroid positions in the game loop
+function updateAsteroids() {
+    for (let asteroid of asteroids) {
+        asteroid.x += asteroid.velocityX;
+        asteroid.y += asteroid.velocityY;
+
+        // Screen wrapping
+        if (asteroid.x < 0) asteroid.x = canvas.width;
+        if (asteroid.x > canvas.width) asteroid.x = 0;
+        if (asteroid.y < 0) asteroid.y = canvas.height;
+        if (asteroid.y > canvas.height) asteroid.y = 0;
+    }
+}
+
+// Draw asteroids
+function drawAsteroids() {
+    ctx.strokeStyle = "white";
+    ctx.lineWidth = 2;
+    //ctx.fillStyle = "white";
+    for (const asteroid of asteroids) {
+        ctx.beginPath();
+        ctx.arc(asteroid.x, asteroid.y, asteroid.size, 0, Math.PI * 2);
+        ctx.stroke();
+        //ctx.fill();
+    }
+}
+
+// Update game loop to move the ship, lasers, asteroids, etc.
 function gameLoop() {
-    ctx.fillStyle = "black";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    //ctx.clearRect(0, 0, canvas.width, canvas.height);
+    updateShip();
+    updateLasers();
+    updateAsteroids();
 
-    updateShip(); // Update ship position
-    updateLasers(); // Update laser positions
-
-    drawShip(); // Draw the player spaceship
-    drawLasers(); // Draw the fired lasers
+    drawShip();
+    drawLasers();
+    drawAsteroids();
 
     requestAnimationFrame(gameLoop);
 }
 
+// Begin game
+createAsteroids();
 gameLoop();
