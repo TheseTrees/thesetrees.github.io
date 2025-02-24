@@ -178,6 +178,27 @@ function drawAsteroids() {
     }
 }
 
+function checkCollisions() {
+    for (let i = asteroids.length - 1; i >= 0; i--) {
+        let asteroid = asteroids[i];
+
+        for (let j = lasers.length - 1; j >= 0; j--) {
+            let laser = lasers[j];
+
+            let dx = laser.x - asteroid.x;
+            let dy = laser.y - asteroid.y;
+            let distance = Math.sqrt(dx * dx + dy * dy);
+
+            if (distance < asteroid.size) {
+                // Remove asteroid and laser on collision
+                asteroids.splice(i, 1);
+                lasers.splice(j, 1);
+                break; // Move to the next asteroid
+            }
+        }
+    }
+}
+
 // Update game loop to move the ship, lasers, asteroids, etc.
 function gameLoop() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -185,6 +206,7 @@ function gameLoop() {
     updateShip();
     updateLasers();
     updateAsteroids();
+    checkCollisions();
 
     drawShip();
     drawLasers();
