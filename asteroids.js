@@ -133,22 +133,61 @@ function drawLasers() {
     }
 }
 
-// Array to track asteroids
-const asteroids = [];
-const numAsteroids = 5;
+const asteroids = []; // Array to track asteroids
+const numAsteroids = 5; // Initial number of asteroids
+const safeDistance = 100; // Minimum asteroid spawn distance from player
+const maxAsteroids = 10; // Cap on active asteroids
 
-// Generate random asteroids
+// Generate initial asteroids
 function createAsteroids() {
+    
     for (let i = 0; i < numAsteroids; i++) {
-        let asteroid = {
-            x: Math.random() * canvas.width,
-            y: Math.random() * canvas.height,
+        let x, y, distance;
+        
+        // Select a potential location to spawn an asteroid
+        do {
+            x = Math.random() * canvas.width;
+            y = Math.random() * canvas.height;
+            let dx = x - ship.x;
+            let dy = y - ship.y;
+            distance = Math.sqrt(dx * dx + dy * dy);
+        } while (distance < safeDistance); // Check if location isn't too close to the player
+        
+        asteroids.push({
+            x: x,
+            y: y,
             velocityX: (Math.random() - 0.5) * 2, // Random speed between -1 and 1
             velocityY: (Math.random() - 0.5) * 2,
             size: Math.random() * 30 + 15 // Random size between 15 and 45
-        };
-        asteroids.push(asteroid);
+        });
     }
+}
+
+// Continually spawn new asteroids
+function spawnAsteroid()  {
+    if (asteroids.length >= maxAsteroids) return; // Don't spawn if at cap
+
+    let x, y, distance;
+    let edge = Math.floor(Math.random() * 4); // 0 = top, 1 = bottom, 2 = left, 3 = right
+
+    do {
+        if (edge === 0) {x = Math.random() * canvas.width; y = 0;}
+        else if (edge === 1) { x = Math.random() * canvas.width; y = canvas.height; }
+        else if (edge === 2) { x = 0; y = Math.random() * canvas.height; }
+        else { x = canvas.width; y = Math.random() * canvas.height; }
+        
+        let dx = x - ship.x;
+        let dy = y - ship.y;
+        distance = Math.sqrt(dx * dx + dy * dy);
+    } while (distance < safeDistance); // Don't spawn if too close to player
+
+    asteroids.push({
+        x: x,
+        y: y,
+        velocityX: (Math.random() - 0.5) * 2,
+        velocityY: (Math.random() - 0.5) * 2,
+        size: Math.random() * 30 + 15
+    });
 }
 
 // Update asteroid positions in the game loop
@@ -169,7 +208,7 @@ function updateAsteroids() {
 function drawAsteroids() {
     ctx.strokeStyle = "white";
     ctx.lineWidth = 2;
-    //ctx.fillStyle = "white";
+
     for (const asteroid of asteroids) {
         ctx.beginPath();
         ctx.arc(asteroid.x, asteroid.y, asteroid.size, 0, Math.PI * 2);
@@ -190,10 +229,23 @@ function checkCollisions() {
             let distance = Math.sqrt(dx * dx + dy * dy);
 
             if (distance < asteroid.size) {
-                // Remove asteroid and laser on collision
-                asteroids.splice(i, 1);
-                lasers.splice(j, 1);
-                break; // Move to the next asteroid
+                lasers.splice(j, 1); // Remove laser
+                
+                if (asteroid.size > 20) {
+                    // Split big asteroid into two smaller asteroids
+                    for (let k = 0; k < 2; k++) {
+                        asteroids.push({
+                            x: asteroid.x,
+                            y: asteroid.y,
+                            velocityX: (Math.random() - 0.5) * 2,
+                            velocityY: (Math.random() - 0.5) * 2,
+                            size: asteroid.size / 2
+                        });
+                    }
+                }
+
+                asteroids.splice(i, 1); // Remove original asteroid
+                break;
             }
         }
     }
@@ -202,7 +254,8 @@ function checkCollisions() {
 // Update game loop to move the ship, lasers, asteroids, etc.
 function gameLoop() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-
+    setInterval(spawnAsteroid, 5000); // Every 5 seconds check if new asteroids should spawn
+    
     updateShip();
     updateLasers();
     updateAsteroids();
