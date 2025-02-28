@@ -25,6 +25,9 @@ const keys = {
     up: false
 };
 
+// Initialize score for point tracking
+let score = 0;
+
 // Event listeners for key press and release
 document.addEventListener("keydown", (event) => {
     if (event.code === "ArrowLeft") keys.left = true;
@@ -245,10 +248,17 @@ function checkCollisions() {
                 }
 
                 asteroids.splice(i, 1); // Remove original asteroid
+                score += Math.floor(asteroid.size) * 10; // Large asteroids give more points
                 break;
             }
         }
     }
+}
+
+function drawScore() {
+    ctx.fillStyle = "white";
+    ctx.font = "20px Arial";
+    ctx.fillText("Score: " + score, 20, 30);
 }
 
 // Update game loop to move the ship, lasers, asteroids, etc.
@@ -264,6 +274,7 @@ function gameLoop() {
     drawShip();
     drawLasers();
     drawAsteroids();
+    drawScore();
 
     requestAnimationFrame(gameLoop);
 }
