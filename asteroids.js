@@ -25,8 +25,10 @@ const keys = {
     up: false
 };
 
-// Initialize score for point tracking
+let gameStarted = false;
 let score = 0;
+let animationId;
+let spawnInterval;
 
 // Event listeners for key press and release
 document.addEventListener("keydown", (event) => {
@@ -224,9 +226,19 @@ function checkCollisions() {
     for (let i = asteroids.length - 1; i >= 0; i--) {
         let asteroid = asteroids[i];
 
+        //check collision with ship
+        let dx = asteroid.x - ship.x;
+        let dy = asteroid.y - ship.y;
+        let distance = Math.sqrt(dx * dx + dy * dy);
+
+        if (distance < asteroid.size) {
+            gameOver();
+            return true; // Signal that the game loop needs to stop
+        }
+
+        //Check collision with lasers
         for (let j = lasers.length - 1; j >= 0; j--) {
             let laser = lasers[j];
-
             let dx = laser.x - asteroid.x;
             let dy = laser.y - asteroid.y;
             let distance = Math.sqrt(dx * dx + dy * dy);
@@ -253,6 +265,7 @@ function checkCollisions() {
             }
         }
     }
+    return false; // No ship collision occurred
 }
 
 function drawScore() {
@@ -261,24 +274,59 @@ function drawScore() {
     ctx.fillText("Score: " + score, 20, 30);
 }
 
+function gameOver() {
+    gameStarted = false;
+    clearInterval(spawnInterval); // Stop spawning new asteroids
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    ctx.fillStyle = "white";
+    ctx.font = "30px Arial";
+    ctx.fillText("Game Over!", canvas.width / 2 - 80, canvas.height / 2);
+    ctx.fillText("Final Score: " + score, canvas.width / 2 - 100, canvas.height / 2 + 40);
+
+    cancelAnimationFrame(animationId); // Stop calling game loop
+}
+
 // Update game loop to move the ship, lasers, asteroids, etc.
 function gameLoop() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    setInterval(spawnAsteroid, 5000); // Every 5 seconds check if new asteroids should spawn
-    
+        
     updateShip();
     updateLasers();
     updateAsteroids();
-    checkCollisions();
+
+    if (checkCollisions()) {
+        return; // Exit the game loop if the ship collides with an asteroid
+    }
 
     drawShip();
     drawLasers();
     drawAsteroids();
     drawScore();
 
-    requestAnimationFrame(gameLoop);
+    animationID = requestAnimationFrame(gameLoop);
 }
 
-// Begin game
-createAsteroids();
-gameLoop();
+function startGame() {
+    if (!gameStarted) {
+        gameStarted = true;
+        createAsteroids();
+        spawnInterval = setInterval(spawnAsteroid, 5000);
+        gameLoop();
+    }
+}
+
+function drawStartScreen() {
+    ctx.fillStyle = "white";
+    ctx.font = "30px Arial";
+    ctx.fillText("Press SPACE to Start", canvas.width / 2 - 120, canvas.height / 2);
+}
+
+// List for the player to start the game
+document.addEventListener("keydown", (event) => {
+    if (event.code === "Space" && !gameStarted) {
+        startGame();
+    }
+});
+
+drawStartScreen();
