@@ -27,6 +27,11 @@ const keys = {
 
 let gameStarted = false;
 let score = 0;
+let lives = 3;
+let isInvulnerable = false;
+let invulnTime = 0; // Used to track remaining duration of invulnerability after losing a life
+const invulnDuration = 180;
+const blinkInterval = 15;
 let animationId;
 let spawnInterval;
 
@@ -35,7 +40,16 @@ document.addEventListener("keydown", (event) => {
     if (event.code === "ArrowLeft") keys.left = true;
     if (event.code === "ArrowRight") keys.right = true;
     if (event.code === "ArrowUp") keys.up = true;
-    if (event.code === "Space") fireLaser(); // Call fireLaser when Space is pressed
+    if (event.code === "Space") {
+        if (!gameStarted && animationId === undefined) {
+            startGame();
+        } else if (!gameStarted && animationId !== undefined) {
+            resetGame();
+            startGame();
+        } else {
+            fireLaser();
+        }
+    }
 });
 
 document.addEventListener("keyup", (event) => {
@@ -227,13 +241,28 @@ function checkCollisions() {
         let asteroid = asteroids[i];
 
         //check collision with ship
-        let dx = asteroid.x - ship.x;
-        let dy = asteroid.y - ship.y;
-        let distance = Math.sqrt(dx * dx + dy * dy);
+        if (!isInvulnerable) {
+            let dx = asteroid.x - ship.x;
+            let dy = asteroid.y - ship.y;
+            let distance = Math.sqrt(dx * dx + dy * dy);
 
-        if (distance < asteroid.size) {
-            gameOver();
-            return true; // Signal that the game loop needs to stop
+            if (distance < asteroid.size) {
+                lives--;
+                if (lives <= 0) {
+                    gameOver();
+                    return true;
+                } else {
+                    // Reset ship and activate invulnerability
+                    ship.x = canvas.width / 2;
+                    ship.y = canvas.height / 2;
+                    ship.velocityX = 0;
+                    ship.velocityY = 0;
+                    ship.angle = 0;
+                    isInvulnerable = true;
+                    invulnTime = invulnDuration;
+                    return false;
+                }
+            }
         }
 
         //Check collision with lasers
@@ -274,6 +303,12 @@ function drawScore() {
     ctx.fillText("Score: " + score, 20, 30);
 }
 
+function drawLives() {
+    ctx.fillStyle = "white";
+    ctx.font = "20px Arial";
+    ctx.fillText("Lives: " + lives, canvas.width - 100, 30);
+}
+
 function gameOver() {
     gameStarted = false;
     clearInterval(spawnInterval); // Stop spawning new asteroids
@@ -283,8 +318,25 @@ function gameOver() {
     ctx.font = "30px Arial";
     ctx.fillText("Game Over!", canvas.width / 2 - 80, canvas.height / 2);
     ctx.fillText("Final Score: " + score, canvas.width / 2 - 100, canvas.height / 2 + 40);
+    ctx.fillText("Press SPACE to Restart", canvas.width / 2 - 130, canvas.height / 2 + 80);
 
     cancelAnimationFrame(animationId); // Stop calling game loop
+}
+
+function resetGame() {
+    ship.x = canvas.width / 2;
+    ship.y = canvas.height / 2;
+    ship.angle = 0;
+    ship.velocityX = 0;
+    ship.velocityY = 0;
+    lasers.length = 0; // Clear the lasers array
+    asteroids.length = 0; // Clear the asteroids array
+    score = 0;
+    lives = 3;
+    isInvulnerable = false;
+    invulnTime = 0;
+    gameStarted = false;
+    createAsteroids();
 }
 
 // Update game loop to move the ship, lasers, asteroids, etc.
@@ -299,18 +351,32 @@ function gameLoop() {
         return; // Exit the game loop if the ship collides with an asteroid
     }
 
-    drawShip();
+    if (isInvulnerable) {
+        invulnTime--;
+        if (invulnTime <= 0) {
+            isInvulnerable = false;
+        }
+        // Blink effect
+        if (Math.floor(invulnTime / blinkInterval) % 2 === 0) {
+            drawShip();
+        }
+    } else {
+        drawShip();
+    }
+
     drawLasers();
     drawAsteroids();
     drawScore();
+    drawLives();
 
-    animationID = requestAnimationFrame(gameLoop);
+    animationId = requestAnimationFrame(gameLoop);
 }
 
 function startGame() {
     if (!gameStarted) {
         gameStarted = true;
         createAsteroids();
+        if (spawnInterval) clearInterval(spawnInterval); // Resets the asteroid spawn interval
         spawnInterval = setInterval(spawnAsteroid, 5000);
         gameLoop();
     }
@@ -321,12 +387,5 @@ function drawStartScreen() {
     ctx.font = "30px Arial";
     ctx.fillText("Press SPACE to Start", canvas.width / 2 - 120, canvas.height / 2);
 }
-
-// List for the player to start the game
-document.addEventListener("keydown", (event) => {
-    if (event.code === "Space" && !gameStarted) {
-        startGame();
-    }
-});
 
 drawStartScreen();
