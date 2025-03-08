@@ -1,4 +1,4 @@
-// Get the canvas and context
+// Provides tools for drawing 2D objects on a canvas
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 
